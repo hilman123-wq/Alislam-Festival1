@@ -9,10 +9,11 @@ import {
 const mockSupabase = {
   auth: {
     signInWithPassword: async ({ email, password }) => {
+      // Di mock ini, parameter "email" kita isi dengan "username" dari form
       if (password === 'password123') {
-        return { data: { user: { id: 'user-1', email } }, error: null };
+        return { data: { user: { id: 'user-1', username: email } }, error: null };
       }
-      return { data: null, error: { message: 'Email atau password salah.' } };
+      return { data: null, error: { message: 'Username atau password salah.' } };
     },
     signOut: async () => ({ error: null }),
     onAuthStateChange: (cb) => {
@@ -31,15 +32,31 @@ const AppProvider = ({ children }) => {
   const [userDivision, setUserDivision] = useState('Acara & Lomba');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const login = async (email, password) => {
-    const { data, error } = await mockSupabase.auth.signInWithPassword({ email, password });
+  const login = async (username, password) => {
+    // Kita lempar username ke dalam parameter email untuk simulasi
+    const { data, error } = await mockSupabase.auth.signInWithPassword({ email: username, password });
     if (error) throw error;
     setUser(data.user);
-    if (email.includes('admin')) {
+    
+    // Set Role & Divisi otomatis berdasarkan Username yang diketik
+    const uname = username.toLowerCase();
+    if (uname === 'admin') {
       setUserRole('Super Admin');
       setUserDivision('Semua Divisi');
-    } else {
+    } else if (uname === 'keuangan') {
       setUserRole('Koordinator Divisi');
+      setUserDivision('Keuangan');
+    } else if (uname === 'registrasi') {
+      setUserRole('Panitia Inti');
+      setUserDivision('Registrasi');
+    } else if (uname === 'sponsor') {
+      setUserRole('Koordinator Divisi');
+      setUserDivision('Humas & Sponsor');
+    } else if (uname === 'bazar') {
+      setUserRole('Panitia Lapangan');
+      setUserDivision('Bazar & Expo');
+    } else {
+      setUserRole('Koordinator Lomba');
       setUserDivision('Acara & Lomba');
     }
   };
@@ -84,7 +101,7 @@ const Button = ({ children, onClick, type = 'button', variant = 'primary', class
 
 const LoginScreen = () => {
   const { login } = useContext(AppContext);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -94,7 +111,7 @@ const LoginScreen = () => {
     setLoading(true);
     setError('');
     try {
-      await login(email, password);
+      await login(username, password);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -117,18 +134,38 @@ const LoginScreen = () => {
         <Card className="px-4 py-8 sm:px-10">
           <form className="space-y-6" onSubmit={handleLogin}>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Email</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500" placeholder="admin@alislam.org" />
+              <label className="block text-sm font-medium text-slate-700">Username</label>
+              <input 
+                type="text" 
+                required 
+                value={username} 
+                onChange={(e) => setUsername(e.target.value)} 
+                className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500" 
+                placeholder="Contoh: admin atau keuangan" 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Password</label>
-              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500" placeholder="password123" />
+              <input 
+                type="password" 
+                required 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500" 
+                placeholder="password123" 
+              />
             </div>
             {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start gap-2"><AlertTriangle className="w-5 h-5 flex-shrink-0" /><p>{error}</p></div>}
             <Button type="submit" className="w-full" isLoading={loading}>Masuk Sistem</Button>
-            <div className="text-center text-xs text-slate-500 mt-4 flex flex-col gap-1">
-              <span>Admin: admin@alislam.org | password123</span>
-              <span>Panitia: panitia@alislam.org | password123</span>
+            
+            <div className="text-center text-xs text-slate-500 mt-6 pt-4 border-t border-slate-200 flex flex-col gap-1.5">
+              <p className="font-semibold text-slate-700 mb-1">Daftar Username (Password: password123):</p>
+              <span>✅ admin</span>
+              <span>✅ keuangan</span>
+              <span>✅ registrasi</span>
+              <span>✅ lomba</span>
+              <span>✅ sponsor</span>
+              <span>✅ bazar</span>
             </div>
           </form>
         </Card>
@@ -175,7 +212,7 @@ const Layout = ({ children, activePage, setActivePage }) => {
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center"><Users size={18} /></div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">Pengguna Aktif</p>
+              <p className="text-sm font-medium truncate">Div. {userDivision}</p>
               <p className="text-xs text-emerald-400 truncate">{userRole}</p>
             </div>
           </div>
