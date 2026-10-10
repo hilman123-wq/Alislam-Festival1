@@ -1,27 +1,47 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { 
   Menu, X, Home, Users, Calendar, Trophy, 
   Settings, LogOut, CheckCircle, AlertTriangle, Briefcase, FileText,
   QrCode, Scan, Search, UserCheck, XCircle, Store, DollarSign, PieChart, MapPin
 } from 'lucide-react';
 
-// Simulasi Supabase Client
-const mockSupabase = {
-  auth: {
-    signInWithPassword: async ({ email, password }) => {
-      // Di mock ini, parameter "email" kita isi dengan "username" dari form
-      if (password === 'password123') {
-        return { data: { user: { id: 'user-1', username: email } }, error: null };
-      }
-      return { data: null, error: { message: 'Username atau password salah.' } };
-    },
-    signOut: async () => ({ error: null }),
-    onAuthStateChange: (cb) => {
-      cb('SIGNED_OUT', null);
-      return { data: { subscription: { unsubscribe: () => {} } } };
+// IMPORT KONEKSI SUPABASE ASLI
+import { supabase } from './supabase';
+
+const login = async (username, password) => {
+    // Trik mengubah username menjadi format email sistem
+    const sistemEmail = `${username.toLowerCase().trim()}@sistem.com`;
+    
+    // MENGGUNAKAN SUPABASE ASLI
+    const { data, error } = await supabase.auth.signInWithPassword({ 
+      email: sistemEmail, 
+      password: password 
+    });
+    
+    if (error) {
+      throw new Error("Username atau Password salah! Pastikan sudah terdaftar di Supabase.");
     }
-  }
-};
+    
+    setUser(data.user);
+    
+    // Set Role (Nantinya ini akan ditarik dari tabel user_event_roles)
+    const uname = username.toLowerCase().trim();
+    if (uname === 'admin') {
+      setUserRole('Super Admin');
+      setUserDivision('Semua Divisi');
+    } else if (uname === 'keuangan') {
+      setUserRole('Koordinator Divisi');
+      setUserDivision('Keuangan');
+    } else {
+      setUserRole('Koordinator Divisi');
+      setUserDivision('Acara & Lomba');
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
 const AppContext = createContext();
 
