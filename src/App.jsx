@@ -1,7 +1,7 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { 
   Menu, X, Home, Users, Calendar, Trophy, 
-  Settings, LogOut, CheckCircle, Clock, AlertTriangle, Briefcase, FileText,
+  Settings, LogOut, CheckCircle, AlertTriangle, Briefcase, FileText,
   QrCode, Scan, Search, UserCheck, XCircle, Store, DollarSign, PieChart, MapPin
 } from 'lucide-react';
 
@@ -26,7 +26,7 @@ const AppContext = createContext();
 
 const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [activeEvent, setActiveEvent] = useState({ id: 1, name: 'AL ISLAM FESTIVAL 2027', year: 2027, status: 'Persiapan' });
+  const [activeEvent] = useState({ id: 1, name: 'AL ISLAM FESTIVAL 2027', year: 2027, status: 'Persiapan' });
   const [userRole, setUserRole] = useState('Koordinator Divisi');
   const [userDivision, setUserDivision] = useState('Acara & Lomba');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -35,8 +35,13 @@ const AppProvider = ({ children }) => {
     const { data, error } = await mockSupabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     setUser(data.user);
-    if (email.includes('admin')) setUserRole('Super Admin');
-    else setUserRole('Koordinator Divisi');
+    if (email.includes('admin')) {
+      setUserRole('Super Admin');
+      setUserDivision('Semua Divisi');
+    } else {
+      setUserRole('Koordinator Divisi');
+      setUserDivision('Acara & Lomba');
+    }
   };
 
   const logout = async () => {
@@ -195,22 +200,154 @@ const Layout = ({ children, activePage, setActivePage }) => {
 };
 
 const Dashboard = () => (
-  <div className="space-y-6">
+  <div className="space-y-6 animate-in fade-in">
     <h1 className="text-2xl font-bold text-slate-900">Dashboard Utama</h1>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card className="p-6">
         <h3 className="text-slate-500 text-sm font-medium">Pendaftar Terverifikasi</h3>
         <p className="text-3xl font-bold text-slate-800 mt-2">89</p>
+        <div className="mt-4 flex items-center text-sm text-emerald-600">
+          <CheckCircle size={16} className="mr-1" /> <span>Siap Lomba</span>
+        </div>
       </Card>
       <Card className="p-6">
-        <h3 className="text-slate-500 text-sm font-medium">Total Relasi Sponsor</h3>
-        <p className="text-3xl font-bold text-slate-800 mt-2">12</p>
+        <h3 className="text-slate-500 text-sm font-medium">Total Sponsor (Deal)</h3>
+        <p className="text-3xl font-bold text-slate-800 mt-2">Rp 15jt</p>
+        <div className="mt-4 flex items-center text-sm text-emerald-600">
+          <Briefcase size={16} className="mr-1" /> <span>Dari 3 Instansi</span>
+        </div>
       </Card>
       <Card className="p-6">
-        <h3 className="text-slate-500 text-sm font-medium">Tenant Bazar</h3>
+        <h3 className="text-slate-500 text-sm font-medium">Tenant Bazar Lunas</h3>
         <p className="text-3xl font-bold text-slate-800 mt-2">4</p>
+        <div className="mt-4 flex items-center text-sm text-orange-600">
+          <Store size={16} className="mr-1" /> <span>Sisa 6 Booth</span>
+        </div>
       </Card>
     </div>
+  </div>
+);
+
+const RegistrationModule = () => {
+  const [registrations, setRegistrations] = useState([
+    { id: 'R001', school: 'SDIT Bina Insan', type: 'Futsal', category: 'SD', status: 'Menunggu Verifikasi', code: 'ALF-FS-001' },
+    { id: 'R002', school: 'SMPN 1 Bandung', type: 'Pidato', category: 'SMP', status: 'Terverifikasi', code: 'ALF-PD-002' },
+  ]);
+
+  return (
+    <div className="space-y-6 animate-in fade-in">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-slate-900">Data Pendaftar</h1>
+      </div>
+      <Card>
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="p-4 font-medium">Sekolah</th>
+              <th className="p-4 font-medium">Lomba</th>
+              <th className="p-4 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {registrations.map(reg => (
+              <tr key={reg.id}>
+                <td className="p-4"><p className="font-medium text-slate-900">{reg.school}</p><p className="text-xs text-slate-500">{reg.code}</p></td>
+                <td className="p-4 text-sm">{reg.type} ({reg.category})</td>
+                <td className="p-4"><span className={`text-xs px-2.5 py-1 rounded-full ${reg.status === 'Terverifikasi' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{reg.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+};
+
+const CheckInModule = () => (
+  <div className="space-y-6 animate-in fade-in">
+    <h1 className="text-2xl font-bold text-slate-900">Scanner Check-in</h1>
+    <Card className="p-12 flex flex-col items-center justify-center bg-slate-900 text-white min-h-[400px]">
+      <QrCode className="w-32 h-32 text-emerald-400 mb-6" />
+      <h2 className="text-2xl font-bold mb-2">Siap Memindai</h2>
+      <p className="text-slate-400 mb-6">Arahkan kamera ke QR Code peserta.</p>
+      <div className="flex gap-2 w-full max-w-sm">
+        <input type="text" placeholder="Atau ketik ALF-xxx" className="flex-1 px-4 py-2 rounded-lg text-slate-900" />
+        <Button variant="primary">Cek</Button>
+      </div>
+    </Card>
+  </div>
+);
+
+const CompetitionModule = () => (
+  <div className="space-y-6 animate-in fade-in">
+    <h1 className="text-2xl font-bold text-slate-900">Penilaian Lomba</h1>
+    <Card className="p-6">
+      <h3 className="font-semibold text-slate-800 mb-4">Form Juri: Pidato Bahasa Indonesia</h3>
+      <div className="space-y-4 max-w-lg">
+        <div><label className="block text-sm font-medium mb-1">Materi & Isi (40%)</label><input type="number" className="w-full px-3 py-2 border rounded-lg" placeholder="0-100" /></div>
+        <div><label className="block text-sm font-medium mb-1">Vokal & Intonasi (30%)</label><input type="number" className="w-full px-3 py-2 border rounded-lg" placeholder="0-100" /></div>
+        <div><label className="block text-sm font-medium mb-1">Penampilan (30%)</label><input type="number" className="w-full px-3 py-2 border rounded-lg" placeholder="0-100" /></div>
+        <Button className="w-full mt-4">Simpan Nilai</Button>
+      </div>
+    </Card>
+  </div>
+);
+
+const SponsorModule = () => (
+  <div className="space-y-6 animate-in fade-in">
+    <h1 className="text-2xl font-bold text-slate-900">Humas & Sponsor</h1>
+    <Card>
+      <div className="p-4 border-b bg-slate-50"><h3 className="font-semibold text-slate-800">Pipeline Relasi</h3></div>
+      <table className="w-full text-left">
+        <tbody className="divide-y divide-slate-100">
+          <tr>
+            <td className="p-4">Bank Syariah Indonesia (BSI)<br/><span className="text-xs text-slate-500">Paket Gold - Rp 10.000.000</span></td>
+            <td className="p-4 text-right"><span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">Deal Selesai</span></td>
+          </tr>
+          <tr>
+            <td className="p-4">Penerbit Erlangga<br/><span className="text-xs text-slate-500">Paket Silver - Rp 5.000.000</span></td>
+            <td className="p-4 text-right"><span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">Negosiasi</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </Card>
+  </div>
+);
+
+const BazarModule = () => (
+  <div className="space-y-6 animate-in fade-in">
+    <h1 className="text-2xl font-bold text-slate-900">Bazar UMKM</h1>
+    <Card>
+      <div className="p-4 border-b bg-slate-50"><h3 className="font-semibold text-slate-800">Daftar Tenant</h3></div>
+      <table className="w-full text-left">
+        <tbody className="divide-y divide-slate-100">
+          <tr>
+            <td className="p-4">Kedai Kopi Santri<br/><span className="text-xs text-slate-500">Bazar UMKM</span></td>
+            <td className="p-4 text-center"><span className="px-2 py-1 bg-slate-800 text-white rounded text-xs">Booth A-01</span></td>
+            <td className="p-4 text-right"><span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">Lunas</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </Card>
+  </div>
+);
+
+const FinanceModule = () => (
+  <div className="space-y-6 animate-in fade-in">
+    <h1 className="text-2xl font-bold text-slate-900">Keuangan & RAB</h1>
+    <div className="grid grid-cols-2 gap-4">
+      <Card className="p-6 bg-emerald-50"><p className="text-sm text-emerald-800">Pemasukan</p><h2 className="text-2xl font-bold text-emerald-600">Rp 25.500.000</h2></Card>
+      <Card className="p-6 bg-red-50"><p className="text-sm text-red-800">Pengeluaran</p><h2 className="text-2xl font-bold text-red-600">Rp 8.200.000</h2></Card>
+    </div>
+    <Card>
+      <div className="p-4 border-b bg-slate-50"><h3 className="font-semibold text-slate-800">Riwayat Transaksi</h3></div>
+      <table className="w-full text-left text-sm">
+        <tbody className="divide-y divide-slate-100">
+          <tr><td className="p-4">DP Panggung Utama<br/><span className="text-xs text-slate-500">01 Nov 2026</span></td><td className="p-4 text-right text-red-600">- 5.000.000</td></tr>
+          <tr><td className="p-4">Cair Dana Sponsor BSI<br/><span className="text-xs text-slate-500">03 Nov 2026</span></td><td className="p-4 text-right text-emerald-600">+ 10.000.000</td></tr>
+        </tbody>
+      </table>
+    </Card>
   </div>
 );
 
@@ -222,13 +359,13 @@ const AppContent = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard': return <Dashboard />;
-      default: return (
-        <div className="flex flex-col items-center justify-center h-full text-slate-500 mt-20">
-          <Settings className="w-12 h-12 mb-4 opacity-20" />
-          <h2 className="text-xl font-semibold">Modul {activePage} aktif!</h2>
-          <p className="text-sm mt-2 text-center">Tampilan admin gelap dan menu lengkap berhasil dimuat.</p>
-        </div>
-      );
+      case 'pendaftaran': return <RegistrationModule />;
+      case 'checkin': return <CheckInModule />;
+      case 'lomba': return <CompetitionModule />;
+      case 'sponsor': return <SponsorModule />;
+      case 'bazar': return <BazarModule />;
+      case 'keuangan': return <FinanceModule />;
+      default: return <Dashboard />;
     }
   };
   return <Layout activePage={activePage} setActivePage={setActivePage}>{renderPage()}</Layout>;
