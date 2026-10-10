@@ -17,7 +17,6 @@ const AppProvider = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Cek sesi login yang tersimpan
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
@@ -54,31 +53,55 @@ const AppProvider = ({ children }) => {
   );
 };
 
-// Komponen Tombol yang Lebih Elegan
-const Button = ({ children, onClick, variant = 'primary', className = '', type="button" }) => {
+const Button = ({ children, onClick, variant = 'primary', className = '', type="button", isLoading = false }) => {
   const variants = {
     primary: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm",
     secondary: "bg-white border border-slate-300 hover:bg-slate-50 text-slate-700",
     danger: "bg-red-50 hover:bg-red-100 text-red-600",
   };
   return (
-    <button type={type} onClick={onClick} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm ${variants[variant]} ${className}`}>
-      {children}
+    <button type={type} onClick={onClick} disabled={isLoading} className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm ${variants[variant]} ${className} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+      {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : children}
     </button>
   );
 };
 
+// ==========================================
+// LAYAR LOGIN YANG SUDAH DIREVISI
+// ==========================================
 const LoginScreen = () => {
   const { login } = useContext(AppContext);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Membaca data yang disimpan saat halaman pertama kali dibuka
+  useEffect(() => {
+    const savedUser = localStorage.getItem('alf_saved_username');
+    const savedPass = localStorage.getItem('alf_saved_password');
+    if (savedUser && savedPass) {
+      setUsername(savedUser);
+      setPassword(savedPass);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');
-    try { await login(username, password); } 
+    try { 
+      await login(username, password); 
+      // Jika centang "Ingat Saya" aktif, simpan datanya di browser
+      if (rememberMe) {
+        localStorage.setItem('alf_saved_username', username);
+        localStorage.setItem('alf_saved_password', password);
+      } else {
+        localStorage.removeItem('alf_saved_username');
+        localStorage.removeItem('alf_saved_password');
+      }
+    } 
     catch (err) { setError(err.message); } 
     finally { setLoading(false); }
   };
@@ -94,12 +117,26 @@ const LoginScreen = () => {
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Username Divisi</label>
-            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Contoh: admin atau registrasi" />
+            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Masukkan username..." />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
             <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="••••••••" />
           </div>
+          
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer"
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer">
+              Ingat Saya
+            </label>
+          </div>
+
           {error && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm flex items-center gap-2"><AlertTriangle size={16} />{error}</div>}
           <Button type="submit" className="w-full py-3" isLoading={loading}>{loading ? 'Memproses...' : 'Masuk ke Sistem'}</Button>
         </form>
@@ -109,31 +146,24 @@ const LoginScreen = () => {
 };
 
 // ==========================================
-// MODUL PENDAFTARAN (SUDAH DI-SEMPURNAKAN)
+// MODUL PENDAFTARAN
 // ==========================================
 const RegistrationModule = () => {
-  // State interaktif
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLomba, setFilterLomba] = useState('Semua');
   const [showModal, setShowModal] = useState(false);
-  
-  // Data State (Nantinya diganti dengan fetch dari Supabase)
   const [registrations, setRegistrations] = useState([
     { id: 1, school: 'SDIT Bina Insan', type: 'Futsal', category: 'SD', status: 'Menunggu Verifikasi', code: 'ALF-FS-001', date: '10 Okt 2026' },
     { id: 2, school: 'SMPN 1 Bandung', type: 'Pidato B. Indonesia', category: 'SMP', status: 'Terverifikasi', code: 'ALF-PD-002', date: '09 Okt 2026' },
     { id: 3, school: 'SD Al Falah', type: 'MHQ', category: 'SD', status: 'Perlu Perbaikan', code: 'ALF-MQ-003', date: '09 Okt 2026' },
     { id: 4, school: 'SMP Nurul Fikri', type: 'Olimpiade Matematika', category: 'SMP', status: 'Terverifikasi', code: 'ALF-OM-004', date: '08 Okt 2026' },
   ]);
-
-  // Form State untuk tambah data
   const [formData, setFormData] = useState({ school: '', type: 'Futsal' });
 
-  // Fungsi Verifikasi (Berfungsi Nyata di UI)
   const handleVerify = (id) => {
     setRegistrations(registrations.map(reg => reg.id === id ? { ...reg, status: 'Terverifikasi' } : reg));
   };
 
-  // Fungsi Tambah Data (Berfungsi Nyata di UI)
   const handleAddData = (e) => {
     e.preventDefault();
     const newData = {
@@ -150,7 +180,6 @@ const RegistrationModule = () => {
     setFormData({ school: '', type: 'Futsal' });
   };
 
-  // Logika Pencarian & Filter
   const filteredData = registrations.filter(reg => {
     const matchSearch = reg.school.toLowerCase().includes(searchTerm.toLowerCase()) || reg.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchFilter = filterLomba === 'Semua' || reg.type.includes(filterLomba);
@@ -168,7 +197,6 @@ const RegistrationModule = () => {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        {/* Toolbar Pencarian & Filter */}
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -182,8 +210,6 @@ const RegistrationModule = () => {
             <option value="Olimpiade">Olimpiade Matematika</option>
           </select>
         </div>
-
-        {/* Tabel Data Dinamis */}
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -232,7 +258,6 @@ const RegistrationModule = () => {
         </div>
       </div>
 
-      {/* Modal Tambah Data */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
@@ -303,7 +328,6 @@ const AppContent = () => {
     switch (activePage) {
       case 'dashboard': return <Dashboard />;
       case 'pendaftaran': return <RegistrationModule />;
-      // Modul lain disederhanakan sebagai placeholder untuk fokus ke penyempurnaan Pendaftaran
       default: return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500">
           <Settings className="w-16 h-16 mb-4 opacity-20 text-slate-400" />
@@ -316,7 +340,6 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar Gelap Elegan */}
       {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/50 z-20 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
       <aside className={`fixed lg:sticky top-0 h-screen w-72 bg-[#0f172a] text-slate-300 z-30 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col shadow-2xl`}>
         <div className="p-6 flex items-center justify-between border-b border-slate-800 bg-[#0b1120]">
